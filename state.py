@@ -23,6 +23,8 @@ class State:
         self.dealer_visible_value = dealer_visible_value
         self.usable_ace = usable_ace     #boolean if the hand has an ace or not
 
+        self.data = (self.player_value,self.dealer_visible_value,self.usable_ace)
+
     def __repr__(self):
         return f'({self.player_value},{self.dealer_visible_value},{self.usable_ace})'
 

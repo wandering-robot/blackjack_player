@@ -25,6 +25,7 @@ class Card:
     def __init__(self,num,suite):
         self.num = num
         self.suite = suite
+        self.is_ace = False
         self.value = self.calc_value()
 
     def calc_value(self):       #determine card's value for determining the hand's value
@@ -33,6 +34,7 @@ class Card:
         except:
             if self.num == "A":
                 value = 11
+                self.is_ace = True
             else:
                 value = 10
         return value
