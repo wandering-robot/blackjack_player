@@ -23,6 +23,8 @@ class AI_Game:
 
         self.player_playing = True  #once a player stays they cannot play again
 
+        self.visited_states = []        #to spread returns over all visited states
+
     def __repr__(self):
         return f'Player {self.player.value} Dealer {self.dealer.value}'
 
@@ -51,20 +53,25 @@ class AI_Game:
                 self.player.playing = False
         #dealer turn
         if self.dealer.value < 17:
-            self.dealer.value += self.deck.deal().value
+            card = self.deck.deal()
+            self.dealer.value += card.value
+            self.dealer.visible_value += card.value
         #allow people to reduce their scores by applying aces
         self.apply_ace()
         #check to see if anyone has bust by making bust people not _playing
         if self.player.value > 21:
             self.player.broke = True
+            self.player.playing = False
         if self.dealer.value > 21:
             self.dealer.broke = True
 
     def update_state(self):
         try:
-            self.state = self.agent.states[(self.player.value,self.dealer.value,self.player.usable_ace)]
+            self.state = self.agent.states[(self.player.value,self.dealer.visible_value,self.player.usable_ace)]
         except:
             self.state = None
+        self.visited_states.append(self.state)      #add state to the list 
+        
 
     def apply_ace(self):
         if self.player.usable_ace and self.player.value > 21:
@@ -76,20 +83,20 @@ class AI_Game:
 
     def end_game(self):
         if self.player.broke:
-            return 0
+            return 0,self.visited_states
         elif self.dealer.broke:
-            return 1
+            return 1,self.visited_states
         elif self.player.value > self.dealer.value:
-            return 1
+            return 1,self.visited_states
         else:
-            return 0
+            return 0,self.visited_states
 
     def play(self):
         """main loop for policy evaluation"""
         while True:
             self.round()
-            self.update_state()
             if not(self.player.playing) and (self.dealer.value >= 17):
                 break
+            self.update_state()
         return self.end_game()
         

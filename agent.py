@@ -3,12 +3,18 @@ from state import Q,State
 from blackjack_cards import Deck
 from random import randint
 
+import atexit
+
 class Agent:
-    def __init__(self):
+    def __init__(self,new=False):
         self.states = {}
-        for i in range(11,22):
-            for j in range(11,22):
+        for i in range(12,22):          #i is the player's actual value
+            for j in range(2,15):       #j is the dealers visible value
                 for ace in [True,False]:
+                    # if j == 11 and ace == False:    #tweaking to get rid of impossible states
+                    #     continue
+                    # elif i == 12 and ace == True:
+                    #     continue
                     self.states[(i,j,ace)] = State(i,j,ace)     #create a dectionary for all states
 
         self.qs = {}
@@ -16,45 +22,46 @@ class Agent:
             for a in [True,False]:
                 self.qs[(state,a)] = Q(state,a)         #create a dictionary for all qs
 
-        self.policy = {state:randint(0,1) for state in self.states}
+        if new:              #allow for user to create new policy if they want
+            self.policy = {state:randint(0,1) for state in self.states.values()}
+        else:
+            self.policy = {}
+            self.download_policy()
         
-        self.returns = {q:0 for q in self.qs}
+        self.returns = {q_key:0 for q_key in self.qs}   #returns
+        self.returns_itr = {q_key:1 for q_key in self.qs}   #number of returns that q has seen
+
         self.iteration = 1
-        self.epsilon = 0.001
         self.done = False
 
-    def update_average(self,q,result):
+    def update_average(self,q_key,result):
         """updates the average return for the given q"""
-        a = 1/self.iteration
+        a = 1/self.returns_itr[q_key]
         b = 1 - a
-        self.returns[q] = a * result + b * self.returns[q]
-
-    def check_stability(self,new,old):
-        return abs(new-old) < self.epsilon
+        self.returns[q_key] = a * result + b * self.returns[q_key]
+        self.returns_itr[q_key] += 1
 
     def eval(self):
         """main loop that enables policy evaluation"""
-        while True:
-            stable = True
-            for q in agent.qs:
-                game = AI_Game(agent,q)
-                result = game.play() 
-                old_result = self.returns[q]
-                self.update_average(q,result)
-                stable = self.check_stability(result,old_result)
+        while self.iteration < 100:
+            for q_key in self.qs:
+                game = AI_Game(agent,q_key)
+                result,visited_states = game.play()     #returns a tuple to be unpacked
+                self.update_average(q_key,result)
+
+                for state in visited_states:        #updates values for the visited states as well
+                    if state != None:
+                        state_q_key = (state,self.policy[state])
+                        self.update_average(state_q_key,result)
+
             self.iteration += 1
-            print(self.iteration)
-            if stable:
-                if self.iteration == 2:
-                    self.done = True    #if all was identical from last iteration, should be optimal policy
-                self.iteration = 1      #reset iterations to 1
-                break
+        self.iteration = 1
 
     def improve(self):
         """main loop for policy improvement"""
         for state in self.states.values():
-            hit = self.qs[(state,True)].value
-            stay = self.qs[(state,False)].value
+            hit = self.returns[(state,True)]
+            stay = self.returns[(state,False)]
             if hit > stay:
                 self.policy[state] = 1
             else:
@@ -62,16 +69,31 @@ class Agent:
 
     def learn(self):
         """eval improve loop"""
+        iteration = 0
         while not(self.done):
+            iteration += 1
             self.eval()
             self.improve()
+            if iteration % 25 == 0:
+                self.save_policy()
+            print(iteration)
+            
+    def save_policy(self):
+        with open('policy','w') as policy_file:
+            for k,v in self.policy.items():
+                policy_file.write(f'{k.player_value},{k.dealer_visible_value},{k.usable_ace}:{v}\n')
 
-    def display(self):
-        for state,action in self.policy.items():
-            print(f'State {state}\t->\t{action}')
+
+    def download_policy(self):
+        with open('policy','r') as policy:
+            for state_action in policy:
+                state,action = state_action.rstrip().split(':')
+                i,j,ace = state.split(',')
+                self.policy[self.states[(int(i),int(j),bool(ace))]] = int(action)
+
 
 
 if __name__ == "__main__":
-    agent = Agent()
+    agent = Agent(new=True)
+    atexit.register(agent.save_policy)
     agent.learn()
-    agent.display()
