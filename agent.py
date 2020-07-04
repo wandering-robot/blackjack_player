@@ -8,8 +8,8 @@ import atexit
 class Agent:
     def __init__(self,new=False):
         self.states = {}
-        for i in range(12,22):          #i is the player's actual value
-            for j in range(2,15):       #j is the dealers visible value
+        for i in range(12,21):          #i is the player's actual value
+            for j in range(2,21):       #j is the dealers visible value
                 for ace in [True,False]:
                     # if j == 11 and ace == False:    #tweaking to get rid of impossible states
                     #     continue
@@ -89,11 +89,11 @@ class Agent:
             for state_action in policy:
                 state,action = state_action.rstrip().split(':')
                 i,j,ace = state.split(',')
-                self.policy[self.states[(int(i),int(j),bool(ace))]] = int(action)
+                self.policy[self.states[(int(i),int(j),ace == "True")]] = int(action)
 
 
 
 if __name__ == "__main__":
-    agent = Agent(new=True)
+    agent = Agent()
     atexit.register(agent.save_policy)
     agent.learn()

@@ -40,17 +40,15 @@ class AI_Game:
                     self.player.usable_ace = True
             else:
                 self.player.playing = False
-        else:
-            try:        #use this try except to handle states out of range aka obvious break                                        
-                if self.agent.policy[self.state.data]:
-                    card = self.deck.deal()
-                    self.player.value += card.value
-                    if card.is_ace:
-                        self.player.usable_ace = True
-                else:
-                    self.player.playing = False
-            except:
+        else:                                    
+            if self.apply_policy():
+                card = self.deck.deal()
+                self.player.value += card.value
+                if card.is_ace:
+                    self.player.usable_ace = True
+            else:
                 self.player.playing = False
+
         #dealer turn
         if self.dealer.value < 17:
             card = self.deck.deal()
@@ -72,6 +70,13 @@ class AI_Game:
             self.state = None
         self.visited_states.append(self.state)      #add state to the list 
         
+    def apply_policy(self):
+        if self.player.value < 12:
+            return True
+        elif self.player.value > 20 or self.state == None:
+            return False
+        else:
+            return self.agent.policy[self.state]
 
     def apply_ace(self):
         if self.player.usable_ace and self.player.value > 21:

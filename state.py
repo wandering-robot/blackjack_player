@@ -1,4 +1,4 @@
-from hands import Hand, HandD
+
 class Q:
     def __init__(self, state, action):
         self.state = state
